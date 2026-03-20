@@ -1,0 +1,21 @@
+vector_store:
+  provider: qdrant
+  config:
+    host: ${QDRANT_HOST}
+    port: 6333
+    collection_name: two-agent-memories
+    embedding_model_dims: 1536
+
+llm:
+  provider: openai
+  config:
+    api_key: ${OPENAI_API_KEY}
+    model: gpt-4o-mini
+
+embedder:
+  provider: openai
+  config:
+    api_key: ${OPENAI_API_KEY}
+    model: text-embedding-3-small
+
+history_db_path: /data/mem0_history.db

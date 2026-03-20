@@ -1,0 +1,65 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openrouter/xiaomi/mimo-v2-pro",
+        "fallback": ["anthropic/claude-sonnet-4-6"]
+      }
+    }
+  },
+  "providers": {
+    "openrouter": {
+      "apiKey": "${OPENROUTER_API_KEY}"
+    },
+    "anthropic": {
+      "apiKey": "${ANTHROPIC_API_KEY}"
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${ARIA_TELEGRAM_TOKEN}",
+      "groupChats": [
+        {
+          "chatId": "${TELEGRAM_GROUP_CHAT_ID}",
+          "dmPolicy": "open"
+        }
+      ],
+      "dmPolicy": "pairing",
+      "allowlist": ["${OPERATOR_TELEGRAM_ID}"]
+    }
+  },
+  "hooks": {
+    "enabled": true,
+    "token": "${OPENCLAW_HOOKS_TOKEN}",
+    "path": "/hooks",
+    "allowedAgentIds": ["main", "hooks"],
+    "defaultSessionKey": "hook:ingress",
+    "allowRequestSessionKey": false,
+    "allowedSessionKeyPrefixes": ["hook:"]
+  },
+  "plugins": {
+    "entries": {
+      "openclaw-mem0": {
+        "enabled": true,
+        "config": {
+          "mode": "platform",
+          "apiKey": "${MEM0_API_KEY}",
+          "userId": "operator",
+          "agentId": "aria",
+          "multiAgentMode": true,
+          "autoRecall": true,
+          "autoCapture": true,
+          "topK": 8,
+          "tags": ["aria", "two-agent-system"]
+        }
+      }
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "auth": {
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    }
+  }
+}

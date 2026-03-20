@@ -1,0 +1,15 @@
+# Generated secrets — never commit
+.env.secrets
+.env
+*.env
+
+# Node
+node_modules/
+dist/
+build/
+
+# Railway local state
+.railway/
+
+# OS
+.DS_Store
