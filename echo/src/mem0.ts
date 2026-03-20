@@ -31,7 +31,7 @@ async function mem0Fetch(path: string, options: RequestInit): Promise<Response> 
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Token ${MEM0_API_KEY}`,
+      "X-API-Key": MEM0_API_KEY,
       ...(options.headers || {}),
     },
   });
@@ -39,7 +39,7 @@ async function mem0Fetch(path: string, options: RequestInit): Promise<Response> 
 
 export async function recallMemories(query: string): Promise<string> {
   try {
-    const res = await mem0Fetch("/v1/memories/search/", {
+    const res = await mem0Fetch("/memories/search", {
       method: "POST",
       body: JSON.stringify({
         query,
@@ -65,7 +65,7 @@ export async function captureMemory(
   sessionTag?: string
 ): Promise<void> {
   try {
-    await mem0Fetch("/v1/memories/", {
+    await mem0Fetch("/memories", {
       method: "POST",
       body: JSON.stringify({
         messages: [
@@ -90,7 +90,7 @@ export async function captureRoutingDecision(
   reasoning: string
 ): Promise<void> {
   try {
-    await mem0Fetch("/v1/memories/", {
+    await mem0Fetch("/memories", {
       method: "POST",
       body: JSON.stringify({
         messages: [
