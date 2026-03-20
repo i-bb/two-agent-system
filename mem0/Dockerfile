@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir \
     "uvicorn[standard]" \
     python-dotenv
 
-COPY main.py .
+COPY api.py .
 
 EXPOSE 8000
 
