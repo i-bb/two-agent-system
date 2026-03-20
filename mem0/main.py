@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
-from mem0 import Memory
+from mem0 import Memory  # type: ignore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -40,11 +40,25 @@ config = {
     },
 }
 
-logging.info("Initializing Memory with Qdrant at %s:%d", QDRANT_HOST, QDRANT_PORT)
-MEMORY_INSTANCE = Memory.from_config(config)
-logging.info("Memory initialized")
+MEMORY_INSTANCE: Optional[Memory] = None
+
+def get_memory() -> Memory:
+    global MEMORY_INSTANCE
+    if MEMORY_INSTANCE is None:
+        raise HTTPException(status_code=503, detail="Memory not initialized yet")
+    return MEMORY_INSTANCE
 
 app = FastAPI(title="Mem0 REST API", version="1.0.0")
+
+@app.on_event("startup")
+async def startup():
+    global MEMORY_INSTANCE
+    try:
+        logging.info("Initializing Memory with Qdrant at %s:%d", QDRANT_HOST, QDRANT_PORT)
+        MEMORY_INSTANCE = Memory.from_config(config)
+        logging.info("Memory initialized successfully")
+    except Exception as e:
+        logging.error("Memory initialization failed: %s", e)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
@@ -83,16 +97,17 @@ def home():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "memory_ready": MEMORY_INSTANCE is not None}
 
 
 @app.post("/memories")
 def add_memory(body: MemoryCreate, _: Optional[str] = Depends(verify_api_key)):
+    mem = get_memory()
     if not any([body.user_id, body.agent_id, body.run_id]):
         raise HTTPException(status_code=400, detail="user_id, agent_id, or run_id required")
     params = {k: v for k, v in body.model_dump().items() if v is not None and k != "messages"}
     try:
-        result = MEMORY_INSTANCE.add(messages=[m.model_dump() for m in body.messages], **params)
+        result = mem.add(messages=[m.model_dump() for m in body.messages], **params)
         return JSONResponse(content=result)
     except Exception as e:
         logging.exception("add_memory error")
@@ -102,20 +117,22 @@ def add_memory(body: MemoryCreate, _: Optional[str] = Depends(verify_api_key)):
 @app.get("/memories")
 def get_memories(user_id: Optional[str] = None, agent_id: Optional[str] = None,
                  run_id: Optional[str] = None, _: Optional[str] = Depends(verify_api_key)):
+    mem = get_memory()
     if not any([user_id, agent_id, run_id]):
         raise HTTPException(status_code=400, detail="user_id, agent_id, or run_id required")
     params = {k: v for k, v in {"user_id": user_id, "agent_id": agent_id, "run_id": run_id}.items() if v}
     try:
-        return MEMORY_INSTANCE.get_all(**params)
+        return mem.get_all(**params)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/memories/search")
 def search_memories(body: SearchRequest, _: Optional[str] = Depends(verify_api_key)):
+    mem = get_memory()
     params = {k: v for k, v in body.model_dump().items() if v is not None and k != "query"}
     try:
-        return MEMORY_INSTANCE.search(query=body.query, **params)
+        return mem.search(query=body.query, **params)
     except Exception as e:
         logging.exception("search_memories error")
         raise HTTPException(status_code=500, detail=str(e))
@@ -123,8 +140,9 @@ def search_memories(body: SearchRequest, _: Optional[str] = Depends(verify_api_k
 
 @app.delete("/memories/{memory_id}")
 def delete_memory(memory_id: str, _: Optional[str] = Depends(verify_api_key)):
+    mem = get_memory()
     try:
-        MEMORY_INSTANCE.delete(memory_id=memory_id)
+        mem.delete(memory_id=memory_id)
         return {"message": "deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
